@@ -2,62 +2,82 @@
 
 #include <iostream>
 #include <sstream>
-#include <unordered_map>
+#include <memory>
+#include <type_traits>
+#include <experimental/optional>
 
 namespace Pptool {
 
 class Any {
-    class AnyBase {
+    class HolderBase {
     public:
-        virtual ~AnyBase() = default;
+        virtual ~HolderBase() = default;
+        virtual const std::type_info& type() const = 0;
     };
 
     template <typename T>
-    class AnyDerived final : public AnyBase {
+    class Holder final : public HolderBase {
         T value_;
 
     public:
-        AnyDerived(const T& value)
-            : value_(value)
+        Holder(const T& value)
+            : value_{value}
         {
         }
-        virtual ~AnyDerived() = default;
-        using type = T;
+        ~Holder() = default;
+        const std::type_info& type() const override { return typeid(T); }
+        const T& value() const { return value_; }
     };
 
-    AnyBase* p_ = nullptr;
+    std::unique_ptr<HolderBase> content_ = nullptr;
 
 public:
     Any() = default;
     template <typename T>
     Any(const T& value)
-        : p_{new AnyDerived<T>(value)}
+        : content_{std::make_unique<Holder<std::decay_t<const T>>>(value)}
     {
     }
 
     template <typename T>
     Any& operator=(const T& value)
     {
-        p_ = new AnyDerived<T>(value);
+        content_ = std::make_unique<Holder<std::decay_t<const T>>>(value);
         return *this;
     }
-    ~Any() { delete p_; }
 
-    decltype(auto) type() const { return typeid(p_); }
+    decltype(auto) type() const
+    {
+        return content_ ? content_->type() : typeid(void);
+    }
+
+    template <typename T>
+    auto value() const
+    {
+        auto p = dynamic_cast<Holder<T>*>(content_.get());
+        return p ? std::experimental::optional<T>{p->value()}
+                 : std::experimental::nullopt;
+    }
 };
 
-class KeyWord {
+template <typename T>
+auto anyCast(const Any& any)
+{
+    return any.value<T>();
+}
+
+class KeywordArgument {
     std::string key_;
     Any value_;
 
 public:
-    KeyWord(const std::string& key)
+    KeywordArgument(const std::string& key)
         : key_{key}
     {
     }
 
     template <typename T>
-    KeyWord& operator=(const T& value)
+    KeywordArgument& operator=(const T& value)
     {
         value_ = value;
         return *this;
@@ -66,7 +86,7 @@ public:
 
 auto operator""_kw(const char* key, std::size_t)
 {
-    return KeyWord{key};
+    return KeywordArgument{key};
 }
 
 decltype(auto) formatImpl(std::stringstream& ss)
