@@ -36,24 +36,35 @@ auto operator""_kw(const char* key, std::size_t)
 struct ArgumentParserBase {
 };
 
-void parseArgs(ArgumentParserBase&)
+template <typename... Values>
+auto parseArgsImpl(ArgumentParserBase&, const std::tuple<Values...>& values)
 {
+    return values;
 }
 
-template <typename Parser, typename T, typename... Args>
-void parseArgs(Parser& parser, const T&, const Args&... args)
+template <typename Parser, typename... Values, typename T, typename... Rest>
+auto parseArgsImpl(Parser& parser, const std::tuple<Values...>& values,
+                   const T& t, const Rest&... args)
 {
-    parseArgs(parser, args...);
+    return parseArgsImpl(parser, std::tuple_cat(values, std::make_tuple(t)),
+                         args...);
 }
 
-template <typename Parser, typename... Args>
-void parseArgs(Parser& parser, const KeywordArgument& kw, const Args&... args)
+template <typename Parser, typename... Values, typename... Rest>
+auto parseArgsImpl(Parser& parser, const std::tuple<Values...>& values,
+                   const KeywordArgument& kw, const Rest&... args)
 {
     auto&& parseFunction = parser.parsers[kw.key()];
     if (parseFunction) {
         parseFunction(kw.value());
     }
-    parseArgs(parser, args...);
+    return parseArgsImpl(parser, values, args...);
+}
+
+template <typename Parser, typename... Args>
+auto parseArgs(Parser& parser, const Args&... args)
+{
+    return parseArgsImpl(parser, std::make_tuple(), args...);
 }
 
 #define ARGUMENT_PARSER                                                        \
