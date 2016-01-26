@@ -3,6 +3,7 @@
 #include "Any.hpp"
 #include <string>
 #include <unordered_map>
+#include <functional>
 
 namespace THI {
 
@@ -32,40 +33,47 @@ auto operator""_kw(const char* key, std::size_t)
     return KeywordArgument{key};
 }
 
-class KeywordArgumentParser {
-    std::unordered_map<std::string, Any> keywordArguments_;
-
-public:
-    template <typename T>
-    void add(const std::string& key, const T& value)
-    {
-        keywordArguments_[key] = value;
-    }
-    const auto& value(const std::string& key) const
-    {
-        return keywordArguments_.at(key);
-    }
+struct ArgumentParserBase {
 };
 
-#define ADD_ARGUMENT(name, defaultValue)                                       \
-    template <typename... Args>                                                \
-    auto parseArgs(KeywordArgumentParser& current, const KeywordArgument& kw,  \
-                   const Args&... args)                                        \
-    {                                                                          \
-        if (kw.key() == #name) {                                               \
-            current.add(#name, kw.value());                                    \
-        }                                                                      \
-        else {                                                                 \
-            current.add(#name, defaultValue);                                  \
-        }                                                                      \
-        return parseArgs(current, args...);                                    \
-    }                                                                          \
-    struct name {                                                              \
-    };                                                                         \
-    auto getValue(const KeywordArgumentParser& parser, name)                   \
-    {                                                                          \
-        return anyCast<std::decay_t<decltype(defaultValue)>>(                  \
-            parser.value(#name));                                              \
+void parseArgs(ArgumentParserBase&)
+{
+}
+
+template <typename Parser, typename T, typename... Args>
+void parseArgs(Parser& parser, const T&, const Args&... args)
+{
+    parseArgs(parser, args...);
+}
+
+template <typename Parser, typename... Args>
+void parseArgs(Parser& parser, const KeywordArgument& kw, const Args&... args)
+{
+    auto&& parseFunction = parser.parsers[kw.key()];
+    if (parseFunction) {
+        parseFunction(kw.value());
     }
+    parseArgs(parser, args...);
+}
+
+#define ARGUMENT_PARSER                                                        \
+    struct ArgumentParser : public THI::ArgumentParserBase {                   \
+        std::unordered_map<std::string, std::function<void(const THI::Any&)>>  \
+            parsers;                                                           \
+    ArgumentParser()
+
+#define ARGUMENT_PARSER_END }
+
+#define ADD_ARGUMENT(name, defaultValue)                                       \
+    std::decay_t<decltype(defaultValue)> name = defaultValue
+
+#define ADD_ARGUMENT_CONSTRUCTER(name, defaultValue)                           \
+    parsers.emplace(std::make_pair(#name, [this](const THI::Any& value) {      \
+        auto result =                                                          \
+            THI::anyCast<std::decay_t<decltype(defaultValue)>>(value);         \
+        if (result) {                                                          \
+            this->name = *result;                                              \
+        }                                                                      \
+    }))
 
 } // namespace THI
