@@ -28,20 +28,20 @@ class Any {
         const T& value() const { return value_; }
     };
 
-    std::unique_ptr<HolderBase> content_ = nullptr;
+    std::shared_ptr<HolderBase> content_ = nullptr;
 
 public:
     Any() = default;
     template <typename T>
     Any(const T& value)
-        : content_{std::make_unique<Holder<std::decay_t<const T>>>(value)}
+        : content_{std::make_shared<Holder<std::decay_t<const T>>>(value)}
     {
     }
 
     template <typename T>
     Any& operator=(const T& value)
     {
-        content_ = std::make_unique<Holder<std::decay_t<const T>>>(value);
+        content_ = std::make_shared<Holder<std::decay_t<const T>>>(value);
         return *this;
     }
 
