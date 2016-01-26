@@ -1,70 +1,11 @@
 #pragma once
 
+#include "Any.hpp"
 #include <iostream>
 #include <sstream>
-#include <memory>
-#include <type_traits>
-#include <experimental/optional>
+#include <unordered_map>
 
-namespace Pptool {
-
-class Any {
-    class HolderBase {
-    public:
-        virtual ~HolderBase() = default;
-        virtual const std::type_info& type() const = 0;
-    };
-
-    template <typename T>
-    class Holder final : public HolderBase {
-        T value_;
-
-    public:
-        Holder(const T& value)
-            : value_{value}
-        {
-        }
-        ~Holder() = default;
-        const std::type_info& type() const override { return typeid(T); }
-        const T& value() const { return value_; }
-    };
-
-    std::unique_ptr<HolderBase> content_ = nullptr;
-
-public:
-    Any() = default;
-    template <typename T>
-    Any(const T& value)
-        : content_{std::make_unique<Holder<std::decay_t<const T>>>(value)}
-    {
-    }
-
-    template <typename T>
-    Any& operator=(const T& value)
-    {
-        content_ = std::make_unique<Holder<std::decay_t<const T>>>(value);
-        return *this;
-    }
-
-    decltype(auto) type() const
-    {
-        return content_ ? content_->type() : typeid(void);
-    }
-
-    template <typename T>
-    auto value() const
-    {
-        auto p = dynamic_cast<Holder<T>*>(content_.get());
-        return p ? std::experimental::optional<T>{p->value()}
-                 : std::experimental::nullopt;
-    }
-};
-
-template <typename T>
-auto anyCast(const Any& any)
-{
-    return any.value<T>();
-}
+namespace THI {
 
 class KeywordArgument {
     std::string key_;
@@ -82,12 +23,41 @@ public:
         value_ = value;
         return *this;
     }
+
+    const auto& value() const { return value_; }
 };
 
 auto operator""_kw(const char* key, std::size_t)
 {
     return KeywordArgument{key};
 }
+
+class KeywordArgumentParser {
+    std::unordered_map<std::string, KeywordArgument> keywordArguments_;
+};
+
+#define BEGIN_KEYWORD_ARGUMENT                                                 \
+    class {                                                                    \
+        std::unordered_map<std::string, Any> keywordArguments;                 \
+                                                                               \
+    public:
+
+#define END_KEYWORD_ARGUMENT                                                   \
+    }                                                                          \
+    arguments;
+
+#define ADD_KEYWORD_ARGUMENT(key, type)                                        \
+    auto key() const                                                           \
+    {                                                                          \
+        return anyCast<std::decay_t<decltype(type)>>(                          \
+            keywordArguments.at(#key));                                        \
+    }
+
+BEGIN_KEYWORD_ARGUMENT
+ADD_KEYWORD_ARGUMENT(hello, "aaa")
+ADD_KEYWORD_ARGUMENT(tom, 10)
+ADD_KEYWORD_ARGUMENT(op, 10.0)
+END_KEYWORD_ARGUMENT
 
 decltype(auto) formatImpl(std::stringstream& ss)
 {
@@ -120,4 +90,4 @@ void print(const T& t, const Args&... args)
     std::cout << s << std::endl;
 }
 
-} // namespace Pptool
+} // namespace THI
