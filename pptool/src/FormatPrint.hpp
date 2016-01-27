@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <sstream>
 #include "KeywordArgument.hpp"
+#include "TupleAlgorithm.hpp"
 
 namespace THI {
 
@@ -37,18 +38,30 @@ void print(const Args&... args)
     {
         ADD_ARGUMENT_CONSTRUCTER(sep, " ");
         ADD_ARGUMENT_CONSTRUCTER(end, "\n");
+        ADD_ARGUMENT_CONSTRUCTER(file, stdout);
+        ADD_ARGUMENT_CONSTRUCTER(flush, false);
     };
     ADD_ARGUMENT(sep, " ");
     ADD_ARGUMENT(end, "\n");
+    ADD_ARGUMENT(file, stdout);
+    ADD_ARGUMENT(flush, false);
     ARGUMENT_PARSER_END;
 
     ArgumentParser parser;
     auto values = THI::parseArgs(parser, args...);
 
-    // TODO
-    // change format use std::tuple
-    // auto s = format(values);
-    // std::fprintf(stdout, "%s%s", s.c_str(), parser.end);
+    std::stringstream ss;
+    tupleForEach([&ss, &parser, &values](std::size_t index, const auto& v) {
+        ss << v;
+        if (index != std::tuple_size<decltype(values)>::value - 1) {
+            ss << parser.sep;
+        }
+    }, values);
+
+    std::fprintf(parser.file, "%s%s", ss.str().c_str(), parser.end);
+    if (parser.flush) {
+        std::fflush(parser.file);
+    }
 }
 
 } // namespace THI
