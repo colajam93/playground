@@ -19,4 +19,36 @@ void tupleForEach(const Func& func, const std::tuple<Tp...>& tuple)
     tupleForEach<N + 1, Func, Tp...>(func, tuple);
 }
 
+template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
+          typename std::enable_if_t<N == sizeof...(Tp)>* = nullptr>
+auto foldL(const Func&, const Identity& identity, const std::tuple<Tp...>&)
+{
+    return identity;
+}
+
+template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
+          typename std::enable_if_t<(N < sizeof...(Tp))>* = nullptr>
+auto foldL(const Func& func, const Identity& identity,
+           const std::tuple<Tp...>& tuple)
+{
+    return foldL<N + 1, Func, Identity, Tp...>(
+        func, func(identity, std::get<N>(tuple)), tuple);
+}
+
+template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
+          typename std::enable_if_t<N == sizeof...(Tp)>* = nullptr>
+auto foldR(const Func&, const Identity& identity, const std::tuple<Tp...>&)
+{
+    return identity;
+}
+
+template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
+          typename std::enable_if_t<(N < sizeof...(Tp))>* = nullptr>
+auto foldR(const Func& func, const Identity& identity,
+           const std::tuple<Tp...>& tuple)
+{
+    return func(std::get<N>(tuple),
+                foldR<N + 1, Func, Identity, Tp...>(func, identity, tuple));
+}
+
 } // namespace THI
