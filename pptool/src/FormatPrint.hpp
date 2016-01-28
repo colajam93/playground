@@ -36,10 +36,10 @@ void print(const Args&... args)
 {
     ARGUMENT_PARSER
     {
-        ADD_ARGUMENT_CONSTRUCTER(sep, " ");
-        ADD_ARGUMENT_CONSTRUCTER(end, "\n");
-        ADD_ARGUMENT_CONSTRUCTER(file, stdout);
-        ADD_ARGUMENT_CONSTRUCTER(flush, false);
+        ADD_ARGUMENT_CONSTRUCTOR(sep, " ");
+        ADD_ARGUMENT_CONSTRUCTOR(end, "\n");
+        ADD_ARGUMENT_CONSTRUCTOR(file, stdout);
+        ADD_ARGUMENT_CONSTRUCTOR(flush, false);
     };
     ADD_ARGUMENT(sep, " ");
     ADD_ARGUMENT(end, "\n");

@@ -78,7 +78,7 @@ auto parseArgs(Parser& parser, const Args&... args)
 #define ADD_ARGUMENT(name, defaultValue)                                       \
     std::decay_t<decltype(defaultValue)> name = defaultValue
 
-#define ADD_ARGUMENT_CONSTRUCTER(name, defaultValue)                           \
+#define ADD_ARGUMENT_CONSTRUCTOR(name, defaultValue)                           \
     parsers.emplace(std::make_pair(#name, [this](const THI::Any& value) {      \
         auto result =                                                          \
             THI::anyCast<std::decay_t<decltype(defaultValue)>>(value);         \
