@@ -48,10 +48,10 @@ void print(const Args&... args)
     ARGUMENT_PARSER_END;
 
     ArgumentParser parser;
-    auto values = THI::parseArgs(parser, args...);
+    auto values = parseArgs(parser, args...);
 
     std::stringstream ss;
-    tupleForEach([&ss, &parser, &values](std::size_t index, const auto& v) {
+    forEachWithIndex([&ss, &parser, &values](std::size_t index, const auto& v) {
         ss << v;
         if (index != std::tuple_size<decltype(values)>::value - 1) {
             ss << parser.sep;
