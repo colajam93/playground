@@ -16,7 +16,7 @@ template <std::size_t N = 0, typename Func, typename... Tp,
 void forEach(const Func& func, const std::tuple<Tp...>& tuple)
 {
     func(std::get<N>(tuple));
-    forEach<N + 1, Func, Tp...>(func, tuple);
+    forEach<N + 1>(func, tuple);
 }
 
 template <std::size_t N = 0, typename Func, typename... Tp,
@@ -30,7 +30,7 @@ template <std::size_t N = 0, typename Func, typename... Tp,
 void forEachWithIndex(const Func& func, const std::tuple<Tp...>& tuple)
 {
     func(N, std::get<N>(tuple));
-    forEachWithIndex<N + 1, Func, Tp...>(func, tuple);
+    forEachWithIndex<N + 1>(func, tuple);
 }
 
 template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
@@ -45,8 +45,7 @@ template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
 auto foldL(const Func& func, const Identity& identity,
            const std::tuple<Tp...>& tuple)
 {
-    return foldL<N + 1, Func, Identity, Tp...>(
-        func, func(identity, std::get<N>(tuple)), tuple);
+    return foldL<N + 1>(func, func(identity, std::get<N>(tuple)), tuple);
 }
 
 template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
@@ -61,14 +60,12 @@ template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
 auto foldR(const Func& func, const Identity& identity,
            const std::tuple<Tp...>& tuple)
 {
-    return func(std::get<N>(tuple),
-                foldR<N + 1, Func, Identity, Tp...>(func, identity, tuple));
+    return func(std::get<N>(tuple), foldR<N + 1>(func, identity, tuple));
 }
 
 template <std::size_t N = 0, typename... Tp,
           typename std::enable_if_t<N == sizeof...(Tp)>* = nullptr>
 auto reverse(const std::tuple<Tp...>&)
-
 {
     return std::make_tuple();
 }
