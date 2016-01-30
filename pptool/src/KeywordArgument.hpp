@@ -37,60 +37,34 @@ auto operator""_kw(const char* key, std::size_t)
 namespace Detail {
 
 template <typename... Values, typename... KW>
-auto update(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
-            const KeywordArgument& kw)
+auto updateTuple(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
+                 const KeywordArgument& kw)
 {
     return std::make_tuple(v, std::tuple_cat(kws, std::make_tuple(kw)));
 }
 
 template <typename... Values, typename... KW, typename T>
-auto update(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
-            const T& t)
+auto updateTuple(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
+                 const T& t)
 {
     return std::make_tuple(std::tuple_cat(v, std::make_tuple(t)), kws);
 }
 
-// template <std::size_t N = 0, typename... Values, typename... KW, typename...
-// Tp,
-//           typename std::enable_if_t<N == sizeof...(Tp)>* = nullptr>
-// auto parseArgsImpl(const std::tuple<Values...>& v, const std::tuple<KW...>&
-// kws,
-//                    const std::tuple<Tp...>&)
-// {
-//     return std::make_tuple(v, kws);
-// }
-//
-// template <std::size_t N = 0, typename... Values, typename... KW, typename...
-// Tp,
-//           typename std::enable_if_t<(N < sizeof...(Tp))>* = nullptr>
-// auto parseArgsImpl(const std::tuple<Values...>& v, const std::tuple<KW...>&
-// kws,
-//                    const std::tuple<Tp...>& tuple)
-// {
-//     auto next = update(v, kws, std::get<N>(tuple));
-//     return parseArgsImpl<N + 1>(std::get<0>(next), std::get<1>(next), tuple);
-// }
-
 template <typename... Args>
-auto parseArgs(const std::tuple<Args...>& args)
+auto separateArgs(const std::tuple<Args...>& args)
 {
-    return foldR([](const auto& value, const auto& tuple) {
-        return update(std::get<0>(tuple), std::get<1>(tuple), value);
+    auto separated = foldR([](const auto& value, const auto& tuple) {
+        return updateTuple(std::get<0>(tuple), std::get<1>(tuple), value);
     }, std::make_tuple(std::make_tuple(), std::make_tuple()), args);
 
-    // return parseArgsImpl(std::make_tuple(), std::make_tuple(), args);
+    return std::make_tuple(reverse(std::get<0>(separated)),
+                           std::get<1>(separated));
 }
 
-// template <typename... Args>
-// auto parseArgs(const std::tuple<Args...>& args)
-//{
-//    return parseArgsImpl(std::make_tuple(), std::make_tuple(), args);
-//}
-
 template <typename... Args>
-auto parseArgs(const Args&... args)
+auto separateArgs(const Args&... args)
 {
-    return parseArgs(std::make_tuple(args...));
+    return separateArgs(std::make_tuple(args...));
 }
 
 } // namespace Detail
@@ -98,7 +72,7 @@ auto parseArgs(const Args&... args)
 template <typename Parser, typename... Args>
 auto parseArgs(Parser& parser, const Args&... args)
 {
-    auto separated = Detail::parseArgs(args...);
+    auto separated = Detail::separateArgs(args...);
     forEach([&parser](auto&& kw) {
         auto&& parseFunction = parser.parsers[kw.key()];
         if (parseFunction) {
