@@ -48,7 +48,8 @@ void print(const Args&... args)
     ARGUMENT_PARSER_END;
 
     ArgumentParser parser;
-    auto values = parseArgs(parser, args...);
+    auto parsed = parseArgs(parser, args...);
+    auto values = std::get<0>(parsed);
 
     std::stringstream ss;
     forEachWithIndex([&ss, &parser, &values](std::size_t index, const auto& v) {
