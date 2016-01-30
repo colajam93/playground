@@ -7,16 +7,30 @@ namespace THI {
 
 template <std::size_t N = 0, typename Func, typename... Tp,
           typename std::enable_if_t<N == sizeof...(Tp)>* = nullptr>
-void tupleForEach(const Func&, const std::tuple<Tp...>&)
+void forEach(const Func&, const std::tuple<Tp...>&)
 {
 }
 
 template <std::size_t N = 0, typename Func, typename... Tp,
           typename std::enable_if_t<(N < sizeof...(Tp))>* = nullptr>
-void tupleForEach(const Func& func, const std::tuple<Tp...>& tuple)
+void forEach(const Func& func, const std::tuple<Tp...>& tuple)
+{
+    func(std::get<N>(tuple));
+    forEach<N + 1, Func, Tp...>(func, tuple);
+}
+
+template <std::size_t N = 0, typename Func, typename... Tp,
+          typename std::enable_if_t<N == sizeof...(Tp)>* = nullptr>
+void forEachWithIndex(const Func&, const std::tuple<Tp...>&)
+{
+}
+
+template <std::size_t N = 0, typename Func, typename... Tp,
+          typename std::enable_if_t<(N < sizeof...(Tp))>* = nullptr>
+void forEachWithIndex(const Func& func, const std::tuple<Tp...>& tuple)
 {
     func(N, std::get<N>(tuple));
-    tupleForEach<N + 1, Func, Tp...>(func, tuple);
+    forEachWithIndex<N + 1, Func, Tp...>(func, tuple);
 }
 
 template <std::size_t N = 0, typename Func, typename Identity, typename... Tp,
