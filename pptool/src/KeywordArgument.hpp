@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
+#include "TupleAlgorithm.hpp"
 
 namespace THI {
 
@@ -33,42 +34,56 @@ auto operator""_kw(const char* key, std::size_t)
     return KeywordArgument{key};
 }
 
-struct ArgumentParserBase {
-};
+namespace Detail {
 
-template <typename... Values>
-auto parseArgsImpl(ArgumentParserBase&, const std::tuple<Values...>& values)
+template <typename... Values, typename... KW>
+auto parseArgsImpl(const std::tuple<Values...>& values,
+                   const std::tuple<KW...>& keywords)
 {
-    return values;
+    return std::make_tuple(values, keywords);
 }
 
-template <typename Parser, typename... Values, typename T, typename... Rest>
-auto parseArgsImpl(Parser& parser, const std::tuple<Values...>& values,
-                   const T& t, const Rest&... args)
+template <typename... Values, typename... KW, typename... Rest>
+auto parseArgsImpl(const std::tuple<Values...>& values,
+                   const std::tuple<KW...>& keywords, const KeywordArgument& kw,
+                   const Rest&... args)
 {
-    return parseArgsImpl(parser, std::tuple_cat(values, std::make_tuple(t)),
-                         args...);
+    return parseArgsImpl(
+        values, std::tuple_cat(keywords, std::forward_as_tuple(kw)), args...);
 }
 
-template <typename Parser, typename... Values, typename... Rest>
-auto parseArgsImpl(Parser& parser, const std::tuple<Values...>& values,
-                   const KeywordArgument& kw, const Rest&... args)
+template <typename... Values, typename... KW, typename T, typename... Rest>
+auto parseArgsImpl(const std::tuple<Values...>& values,
+                   const std::tuple<KW...>& keywords, const T& t,
+                   const Rest&... args)
 {
-    auto&& parseFunction = parser.parsers[kw.key()];
-    if (parseFunction) {
-        parseFunction(kw.value());
-    }
-    return parseArgsImpl(parser, values, args...);
+    return parseArgsImpl(std::tuple_cat(values, std::forward_as_tuple(t)),
+                         keywords, args...);
 }
+
+template <typename... Args>
+auto parseArgs(const Args&... args)
+{
+    return parseArgsImpl(std::make_tuple(), std::make_tuple(), args...);
+}
+
+} // namespace Detail
 
 template <typename Parser, typename... Args>
 auto parseArgs(Parser& parser, const Args&... args)
 {
-    return parseArgsImpl(parser, std::make_tuple(), args...);
+    auto separated = Detail::parseArgs(args...);
+    forEach([&parser](auto&& kw) {
+        auto&& parseFunction = parser.parsers[kw.key()];
+        if (parseFunction) {
+            parseFunction(kw.value());
+        }
+    }, std::get<1>(separated));
+    return std::get<0>(separated);
 }
 
 #define ARGUMENT_PARSER                                                        \
-    struct ArgumentParser : public THI::ArgumentParserBase {                   \
+    struct ArgumentParser {                                                    \
         std::unordered_map<std::string, std::function<void(const THI::Any&)>>  \
             parsers;                                                           \
     ArgumentParser()
