@@ -65,4 +65,20 @@ auto foldR(const Func& func, const Identity& identity,
                 foldR<N + 1, Func, Identity, Tp...>(func, identity, tuple));
 }
 
+template <std::size_t N = 0, typename... Tp,
+          typename std::enable_if_t<N == sizeof...(Tp)>* = nullptr>
+auto reverse(const std::tuple<Tp...>&)
+
+{
+    return std::make_tuple();
+}
+
+template <std::size_t N = 0, typename... Tp,
+          typename std::enable_if_t<(N < sizeof...(Tp))>* = nullptr>
+auto reverse(const std::tuple<Tp...>& tuple)
+{
+    return std::tuple_cat(reverse<N + 1>(tuple),
+                          std::make_tuple(std::get<N>(tuple)));
+}
+
 } // namespace THI
