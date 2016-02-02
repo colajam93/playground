@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <functional>
 #include "TupleAlgorithm.hpp"
+#include "TypeTraits.hpp"
 
 namespace THI {
 
@@ -41,6 +42,19 @@ auto updateTuple(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
                  const KeywordArgument& kw)
 {
     return std::make_tuple(v, std::tuple_cat(kws, std::make_tuple(kw)));
+}
+
+template <typename T>
+using isKeywordArgument =
+    std::is_same<KeywordArgument, std::remove_reference_t<std::remove_cv_t<T>>>;
+
+template <
+    typename... Values, typename... KW, typename... KWS,
+    typename std::enable_if_t<allOf_v<isKeywordArgument, KWS...>>* = nullptr>
+auto updateTuple(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
+                 const std::tuple<KWS...>& kw)
+{
+    return std::make_tuple(v, std::tuple_cat(kws, kw));
 }
 
 template <typename... Values, typename... KW, typename T>
