@@ -37,6 +37,9 @@ auto operator""_kw(const char* key, std::size_t)
 
 namespace Detail {
 
+// TODO
+// separate KeywordArgument... and std::tuple<KeywordArgument...>
+
 template <typename... Values, typename... KW>
 auto updateTuple(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
                  const KeywordArgument& kw)
@@ -55,6 +58,15 @@ auto updateTuple(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
                  const std::tuple<KWS...>& kw)
 {
     return std::make_tuple(v, std::tuple_cat(kws, kw));
+}
+
+template <
+    typename... Values, typename... KW, typename... Tp,
+    typename std::enable_if_t<!allOf_v<isKeywordArgument, Tp...>>* = nullptr>
+auto updateTuple(const std::tuple<Values...>& v, const std::tuple<KW...>& kws,
+                 const std::tuple<Tp...>& tp)
+{
+    return std::make_tuple(std::tuple_cat(v, reverse(tp)), kws);
 }
 
 template <typename... Values, typename... KW, typename T>
