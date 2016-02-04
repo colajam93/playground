@@ -3,6 +3,10 @@ PPTool
 
 Python like print function and Keyword Argument.
 
+## Idea From
+
+[C++11 named parameters using operator suffixes and variadic templates](http://justinvh.blogspot.jp/2012/10/c11-named-parameters-using-operator.html)
+
 ## Requirement
 
 - clang C++14 mode
